@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SirenFirst — 10 Custom Architectures</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script>document.documentElement.classList.add('js')</script>
+<style>
+  :root{
+    --ink:#1b1f24; --muted:#5b6470; --line:#e3e6ea; --bg:#fbfbfa; --card:#ffffff;
+    --accent:#b4232c; --accent-soft:#fbeceb; --ok:#1f6f4a; --ok-soft:#e8f3ec; --warn:#8a5a00; --warn-soft:#fbf3e2;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15.5px/1.7 "Poppins",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+  h1,h2,h3{font-weight:600}
+  a{color:var(--accent);text-decoration:none}
+  .wrap{display:grid;grid-template-columns:250px 1fr;max-width:1240px;margin:0 auto}
+  nav{position:sticky;top:0;height:100vh;overflow:auto;padding:40px 24px;border-right:1px solid var(--line)}
+  nav .brand{font-weight:700;font-size:15px;letter-spacing:.02em;margin-bottom:24px}
+  nav .brand span{color:var(--accent)}
+  nav a{display:block;color:var(--muted);font-size:14px;padding:5px 0}
+  nav a:hover{color:var(--ink)}
+  nav .group{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:#9aa1aa;margin:20px 0 6px}
+  main{padding:56px 56px 120px;min-width:0}
+  header h1{font-size:40px;line-height:1.15;margin:0 0 14px;letter-spacing:-.02em}
+  header p.lead{font-size:18px;color:var(--muted);max-width:720px;margin:0}
+  .tag{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--accent);background:var(--accent-soft);padding:4px 10px;border-radius:999px;margin-bottom:18px}
+  section{margin-top:72px}
+  h2{font-size:26px;letter-spacing:-.01em;margin:0 0 8px}
+  h2 + p.sub{color:var(--muted);margin:0 0 24px}
+  h3{font-size:21px;margin:0}
+  .rules{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+  .rule{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px}
+  .rule b{display:block;margin-bottom:4px}
+  .rule span{color:var(--muted);font-size:15px}
+  .diagram{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:24px;overflow-x:auto;text-align:center}
+  .arch{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:32px;margin-bottom:28px}
+  .arch-head{display:flex;align-items:baseline;gap:14px;margin-bottom:6px}
+  .num{font-size:14px;font-weight:700;color:var(--accent);min-width:28px}
+  .oneliner{color:var(--muted);margin:0 0 20px 42px}
+  .arch .diagram{border:none;background:#f7f8f9;margin:0 0 24px}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  .box{border-radius:10px;padding:16px 18px;font-size:15px}
+  .box h4{margin:0 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:.08em}
+  .why{background:var(--ok-soft)} .why h4{color:var(--ok)}
+  .risk{background:var(--warn-soft)} .risk h4{color:var(--warn)}
+  .box ul{margin:0;padding-left:18px} .box li{margin:3px 0}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 20px 42px}
+  .chip{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:3px 10px;color:var(--muted)}
+  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;font-size:15px}
+  th,td{text-align:left;padding:12px 14px;border-bottom:1px solid var(--line)}
+  th{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);background:#f7f8f9}
+  tr:last-child td{border-bottom:none}
+  .hi{color:var(--ok);font-weight:600} .md{color:var(--warn);font-weight:600} .lo{color:var(--accent);font-weight:600}
+  .note{font-size:14px;color:var(--muted);margin-top:12px}
+  .callout{border-left:3px solid var(--accent);background:var(--card);padding:16px 20px;border-radius:0 10px 10px 0;margin-top:20px}
+  footer{margin-top:80px;color:#9aa1aa;font-size:13px}
+
+  /* ---------- motion tokens ---------- */
+  :root{ --ease:cubic-bezier(.2,.7,.2,1); --dur:.7s; }
+
+  /* scroll progress */
+  .progress{position:fixed;top:0;left:0;right:0;height:3px;z-index:60;pointer-events:none}
+  .progress span{display:block;height:100%;background:var(--accent);transform-origin:0 50%;transform:scaleX(0)}
+
+  /* sidebar: active link with a sliding accent bar */
+  nav a{position:relative;padding:5px 0 5px 12px;transition:color .25s var(--ease)}
+  nav a::before{content:"";position:absolute;left:0;top:7px;bottom:7px;width:2px;border-radius:2px;background:var(--accent);
+    transform:scaleY(0);transition:transform .35s var(--ease)}
+  nav a.active{color:var(--ink);font-weight:500}
+  nav .group,nav .brand{padding-left:12px}
+  nav a.active::before{transform:scaleY(1)}
+
+  /* cards answer the pointer */
+  .rule,.arch{transition:transform .35s var(--ease),box-shadow .35s var(--ease),border-color .35s var(--ease)}
+  .rule:hover,.arch:hover{transform:translateY(-3px);box-shadow:0 14px 34px -22px rgba(27,31,36,.35);border-color:#d6dade}
+  .arch:hover .num{color:var(--ink)}
+  .num{transition:color .3s var(--ease)}
+  .chip{transition:border-color .25s var(--ease),color .25s var(--ease),background .25s var(--ease)}
+  .chip:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+  tr{transition:background .2s var(--ease)}
+  tr:not(:first-child):hover td{background:#fafafa}
+
+  /* hero entrance */
+  .js header > *{opacity:0;transform:translateY(14px);animation:rise .8s var(--ease) forwards}
+  .js header > :nth-child(2){animation-delay:.08s}
+  .js header > :nth-child(3){animation-delay:.16s}
+  @keyframes rise{to{opacity:1;transform:none}}
+
+  /* reveal on scroll (only when JS runs, so content never stays hidden) */
+  .js .reveal{opacity:0;transform:translateY(22px);transition:opacity var(--dur) var(--ease),transform var(--dur) var(--ease)}
+  .js .reveal.in{opacity:1;transform:none}
+  .js .stagger > *{opacity:0;transform:translateY(16px);transition:opacity .6s var(--ease),transform .6s var(--ease)}
+  .js .stagger.in > *{opacity:1;transform:none}
+  .js .stagger.in > :nth-child(2){transition-delay:.08s}
+  .js .stagger.in > :nth-child(3){transition-delay:.16s}
+  .js .stagger.in > :nth-child(4){transition-delay:.24s}
+
+  /* diagrams: nodes settle in, lines draw once on reveal */
+  .diagram svg .node,.diagram svg .edgeLabel,.diagram svg .cluster,.diagram svg .statediagram-state{transition:opacity .5s var(--ease)}
+  .diagram.pre-draw svg .node,.diagram.pre-draw svg .edgeLabel,.diagram.pre-draw svg .cluster,.diagram.pre-draw svg g.stateGroup{opacity:0}
+
+  /* a wide diagram scrolls sideways on a small screen, with a hint */
+  .diagram.scrolls{text-align:left;position:relative;-webkit-overflow-scrolling:touch}
+  .scroll-hint{display:none;font-size:12px;color:var(--muted);margin:8px 2px 0;align-items:center;gap:6px}
+  .diagram.scrolls + .scroll-hint,.diagram.scrolls ~ .scroll-hint{display:flex}
+  .scroll-hint svg{animation:nudge 1.6s var(--ease) infinite}
+  @keyframes nudge{0%,100%{transform:none}50%{transform:translateX(4px)}}
+
+  /* mobile top bar and drawer */
+  .topbar{display:none}
+  .backdrop{display:none}
+
+  @media (max-width:900px){
+    .wrap{grid-template-columns:1fr}
+    main{padding:28px 20px 96px}
+    .cols,.rules{grid-template-columns:1fr}
+    .oneliner,.chips{margin-left:0}
+    section,article,header{scroll-margin-top:72px}
+
+    .topbar{display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40;height:56px;padding:0 12px 0 20px;
+      background:rgba(251,251,250,.92);-webkit-backdrop-filter:saturate(1.4) blur(10px);backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--line)}
+    .topbar .brand{font-weight:700;font-size:16px;letter-spacing:.02em}
+    .topbar .brand span{color:var(--accent)}
+    .menu-btn{width:44px;height:44px;border:0;background:none;display:grid;place-items:center;cursor:pointer;border-radius:10px;color:var(--ink)}
+    .menu-btn:active{background:var(--line)}
+    .menu-btn i{position:relative;display:block;width:20px;height:2px;background:currentColor;border-radius:2px;transition:background .2s}
+    .menu-btn i::before,.menu-btn i::after{content:"";position:absolute;left:0;width:20px;height:2px;background:currentColor;border-radius:2px;transition:transform .35s var(--ease)}
+    .menu-btn i::before{transform:translateY(-6px)} .menu-btn i::after{transform:translateY(6px)}
+    .nav-open .menu-btn i{background:transparent}
+    .nav-open .menu-btn i::before{transform:rotate(45deg)} .nav-open .menu-btn i::after{transform:rotate(-45deg)}
+
+    nav{position:fixed;top:0;left:0;z-index:50;height:100%;width:min(300px,84vw);background:var(--bg);border-right:1px solid var(--line);
+      padding:28px 22px 40px;transform:translateX(-100%);transition:transform .45s var(--ease);visibility:hidden}
+    .nav-open nav{transform:none;visibility:visible;box-shadow:0 0 60px -20px rgba(0,0,0,.35)}
+    nav a{font-size:15px;padding:9px 0 9px 12px}
+    .backdrop{display:block;position:fixed;inset:0;z-index:45;background:rgba(27,31,36,.35);opacity:0;pointer-events:none;transition:opacity .35s var(--ease)}
+    .nav-open .backdrop{opacity:1;pointer-events:auto}
+    body.nav-open{overflow:hidden}
+  }
+
+  @media (max-width:640px){
+    body{font-size:15px}
+    header h1{font-size:clamp(26px,7.4vw,34px)}
+    header p.lead{font-size:16px}
+    section{margin-top:56px}
+    h2{font-size:22px}
+    h3{font-size:18px;line-height:1.35}
+    .arch{padding:20px 18px;border-radius:14px;margin-bottom:20px}
+    .arch-head{gap:10px}
+    .num{min-width:auto}
+    .diagram{padding:14px}
+    .arch .diagram{margin-bottom:18px}
+    .box{padding:14px 16px}
+    .rule{padding:16px 18px}
+    .callout{padding:14px 16px}
+
+    /* tables become one card per row: no sideways scroll */
+    table.stack{border:0;background:none;border-radius:0}
+    table.stack tbody,table.stack tr,table.stack td{display:block}
+    table.stack tr:first-child{display:none}
+    table.stack tr{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:12px;
+      display:grid;grid-template-columns:1fr 1fr;gap:10px 16px}
+    table.stack td{border:0;padding:0;font-size:14px}
+    table.stack td::before{content:attr(data-label);display:block;font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:#8a919b;margin-bottom:1px}
+    table.stack tr:not(:first-child):hover td{background:none}
+    #compare table.stack td:nth-child(1){display:none}
+    #compare table.stack td:nth-child(2),#data table.stack td:nth-child(1){grid-column:1/-1;font-size:16px;font-weight:600}
+    #compare table.stack td:nth-child(2)::before,#data table.stack td:nth-child(1)::before{display:none}
+    #data table.stack td:nth-child(3){grid-column:1/-1}
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation:none !important;transition:none !important;scroll-behavior:auto !important}
+    .js .reveal,.js .stagger > *,.js header > *{opacity:1 !important;transform:none !important}
+    .diagram.pre-draw svg *{opacity:1 !important}
+    .progress{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="progress" aria-hidden="true"><span></span></div>
+<div class="topbar">
+  <a class="brand" href="#overview" style="color:inherit">Siren<span>First</span></a>
+  <button class="menu-btn" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="sidenav"><i></i></button>
+</div>
+<div class="backdrop" aria-hidden="true"></div>
+<div class="wrap">
+<nav id="sidenav" aria-label="Sections">
+  <div class="brand">Siren<span>First</span></div>
+  <a href="#overview">Overview</a>
+  <a href="#rules">Ground rules</a>
+  <a href="#system">The full system</a>
+  <div class="group">Architectures</div>
+  <a href="#a1">1 · MCX-Net</a>
+  <a href="#a2">2 · AGVA-Net</a>
+  <a href="#a3">3 · XM-Teach</a>
+  <a href="#a4">4 · FlickerSpec-Net</a>
+  <a href="#a5">5 · TubeTemporal-Net</a>
+  <a href="#a6">6 · ProtoAmb / ProtoSiren</a>
+  <a href="#a7">7 · PartGraph-EV</a>
+  <a href="#a8">8 · BEV-ArmNet</a>
+  <a href="#a9">9 · ChirpDoppler-Net</a>
+  <a href="#a10">10 · JunctionMAE</a>
+  <div class="group">Decision</div>
+  <a href="#compare">Comparison</a>
+  <a href="#shortlist">Recommended system</a>
+  <a href="#data">Data plan</a>
+</nav>
+
+<main>
+<header id="overview">
+  <div class="tag">B.Tech final-year project · Architecture proposal</div>
+  <h1>SirenFirst: 10 custom architectures for ambulance-first traffic signals</h1>
+  <p class="lead">A siren can be heard 100–300 m away, long before a camera can recognise the ambulance. SirenFirst uses that early audio warning, confirms it with vision and geometry, and gives the ambulance's approach arm a safe green signal. This page sets out ten designs built specifically for this problem and our small dataset.</p>
+</header>
+
+<section id="rules">
+  <h2>Ground rules</h2>
+  <p class="sub">Every architecture on this page follows these four rules.</p>
+  <div class="rules">
+    <div class="rule"><b>No off-the-shelf detectors</b><span>No YOLO, DETR, DINO, Faster R-CNN or Ultralytics. Each model is designed from basic blocks: convolutions, GRU/TCN, small attention layers and Kalman filters.</span></div>
+    <div class="rule"><b>Trained from scratch</b><span>No downloaded weights, as the project brief requires.</span></div>
+    <div class="rule"><b>Built for small data</b><span>~1,300 labelled images, ~200 unique siren clips. Each design needs few labels, learns from unlabeled data, or gets labels from the other modality.</span></div>
+    <div class="rule"><b>Safety first</b><span>Asymmetric fusion: audio may raise an alert, but only visual evidence plus geometry can change the signal.</span></div>
+  </div>
+</section>
+
+<section id="system">
+  <h2>The full system</h2>
+  <p class="sub">The four layers stay the same. Only the Hear and See models change between the ten architectures, so all ten can be compared fairly on one benchmark.</p>
+  <div class="diagram"><pre class="mermaid">
+flowchart LR
+  MIC["Microphone"] --> HEAR["HEAR<br/>Siren model"]
+  CAM["Fixed camera"] --> SEE["SEE<br/>Ambulance model + tracker"]
+  HEAR -->|"tentative alert"| FUSE{"Fusion gate"}
+  SEE -->|"visual confirmation"| FUSE
+  FUSE -->|"confirmed"| LOC["LOCATE<br/>Arm N/E/S/W + ETA"]
+  LOC --> ACT["ACT<br/>Safe signal state machine"]
+  ACT --> OUT["Annotated video<br/>+ JSON event log"]
+  classDef io fill:#f1f3f5,stroke:#c9ced4,color:#1b1f24
+  classDef core fill:#ffffff,stroke:#1b1f24,color:#1b1f24
+  classDef gate fill:#fbeceb,stroke:#b4232c,color:#1b1f24
+  class MIC,CAM,OUT io
+  class HEAR,SEE,LOC,ACT core
+  class FUSE gate
+  </pre></div>
+  <div class="diagram" style="margin-top:20px"><pre class="mermaid">
+stateDiagram-v2
+  direction LR
+  [*] --> NORMAL_CYCLE
+  NORMAL_CYCLE --> REQUEST: confirmed ambulance
+  REQUEST --> CLEARANCE: min green done
+  CLEARANCE --> PREEMPT_GREEN: yellow + all-red
+  PREEMPT_GREEN --> RECOVERY: ambulance cleared or timeout
+  RECOVERY --> NORMAL_CYCLE
+  REQUEST --> ABORT: track lost
+  PREEMPT_GREEN --> ABORT: track lost
+  ABORT --> RECOVERY
+  </pre></div>
+  <p class="note">Signal controller: never two conflicting greens, minimum green, yellow and all-red always respected, and a maximum preemption time.</p>
+</section>
+
+<section>
+  <h2>The ten architectures</h2>
+  <p class="sub">Each one is a complete audio + visual design with its own core idea.</p>
+
+  <!-- 1 -->
+  <article class="arch" id="a1">
+    <div class="arch-head"><span class="num">01</span><h3>MCX-Net — Multi-Cue eXplainable Network</h3></div>
+    <p class="oneliner">Separate small heads look for the beacon, livery, "108"/red cross and body shape; an evidence gate combines them and shows which cue fired.</p>
+    <div class="chips"><span class="chip">Few labels</span><span class="chip">Explainable</span><span class="chip">Fast</span></div>
+    <div class="diagram"><pre class="mermaid">
+flowchart LR
+  V["Video frame"] --> M["Motion detection<br/>+ tracker"] --> C["Vehicle crop"] --> S["Tiny CNN stem"]
+  S --> H1["Body shape head"]
+  S --> H2["Livery colour head"]
+  S --> H3["108 / red cross head"]
+  C --> H4["Beacon flash head<br/>1–4 Hz"]
+  H1 & H2 & H3 & H4 --> G{"Evidence gate"}
+  G --> O["Ambulance score<br/>+ which cue fired"]
+  classDef k fill:#ffffff,stroke:#1b1f24,color:#1b1f24
+  classDef g fill:#fbeceb,stroke:#b4232c,color:#1b1f24
+  class V,M,C,S,H1,H2,H3,H4,O k
+  class G g
+    </pre></div>
+    <div class="cols">
+      <div class="box why"><h4>Why it fits SirenFirst</h4><ul><li>Each head solves an easy sub-problem, so it needs few examples.</li><li>Beacon and livery cues are almost rule-based.</li><li>Explains every decision, matching the "explainable multi-cue" objective.</li><li>The required ablations (remove one cue at a time) come for free.</li></ul></div>
+      <div class="box risk"><h4>Risk</h4><ul><li>Cues fail when the lights are off or the livery is unusual. These become documented failure cases.</li></ul></div>
+    </div>
+  </article>
+
+  <!-- 2 -->
+  <article class="arch" id="a2">
+    <div class="arch-head"><span class="num">02</span><h3>AGVA-Net — Audio-Guided Visual Attention</h3></div>
+    <p class="oneliner">When a siren is heard, the audio network tells the visual network what to pay attention to, much as a person looks harder after hearing a siren.</p>
+    <div class="chips"><span class="chip">Novel fusion</span><span class="chip">Safe by design</span></div>
+    <div class="diagram"><pre class="mermaid">
+flowchart LR
+  A["Audio"] --> R["CRNN<br/>conv + GRU"] --> E["Siren embedding"]
+  E --> F["FiLM: scale + shift"]
+  C["Vehicle crop"] --> B1["Conv block 1"] --> B2["Conv block 2"] --> B3["Conv block 3"] --> O["Ambulance score"]
+  F -.->|"guides"| B1
+  F -.->|"guides"| B2
+  F -.->|"guides"| B3
+  classDef k fill:#ffffff,stroke:#1b1f24,color:#1b1f24
+  classDef g fill:#fbeceb,stroke:#b4232c,color:#1b1f24
+  class A,R,E,C,B1,B2,B3,O k
+  class F g
+    </pre></div>
+    <div class="cols">
+      <div class="box why"><h4>Why it fits SirenFirst</h4><ul><li>Vision only has to confirm what audio already suspects, which is an easier problem.</li><li>Audio changes <i>how</i> vision looks but can never create a detection, so asymmetric fusion is kept.</li></ul></div>
+      <div class="box risk"><h4>Risk</h4><ul><li>Needs paired audio-video training data, which we make by mixing sirens onto video (labelled synthetic).</li></ul></div>
+    </div>
+  </article>
+
+  <!-- 3 -->
+  <article class="arch" id="a3">
+    <div class="arch-head"><span class="num">03</span><h3>XM-Teach — Cross-Modal Self-Teaching</h3></div>
+    <p class="oneliner">The siren detector labels unlabeled junction videos automatically, and those labels train the visual model.</p>
+    <div class="chips"><span class="chip">Very few labels</span><span class="chip">Solves our data gap</span></div>
+    <div class="diagram"><pre class="mermaid">
+flowchart TB
+  S1["1. Train audio siren model<br/>public siren datasets"] --> S2["2. Run it on unlabeled<br/>junction videos"]
+  S2 --> S3["3. Siren getting louder →<br/>vehicle arriving = pseudo-label"]
+  S3 --> S4["4. Train visual model<br/>on pseudo-labels"]
+  S4 --> S5["5. Confident visual detections<br/>clean the audio labels"]
+  S5 -->|"repeat 2–3 rounds"| S2
+  classDef k fill:#ffffff,stroke:#1b1f24,color:#1b1f24
+  class S1,S2,S3,S4,S5 k
+    </pre></div>
+    <div class="cols">
+      <div class="box why"><h4>Why it fits SirenFirst</h4><ul><li>Directly tackles our biggest problem, the lack of labelled junction footage.</li><li>Any public video with a siren becomes training data.</li></ul></div>
+      <div class="box risk"><h4>Risk</h4><ul><li>Pseudo-labels are noisy. Controlled with high confidence thresholds and a small hand-checked validation set.</li></ul></div>
+    </div>
+  </article>
+
+  <!-- 4 -->
+  <article class="arch" id="a4">
+    <div class="arch-head"><span class="num">04</span><h3>FlickerSpec-Net — One Spectrogram Idea for Light and Sound</h3></div>
+    <p class="oneliner">A siren repeats in sound and a beacon repeats in light. Both are turned into spectrograms and read by the same network design.</p>
+    <div class="chips"><span class="chip">Few labels</span><span class="chip">Elegant</span><span class="chip">Fast</span></div>
+    <div class="diagram"><pre class="mermaid">
+flowchart LR
+  A["Audio, 1 s"] --> AS["Log-mel<br/>spectrogram"] --> N1["Spectrogram CNN"] --> P1["Siren score"]
+  C["Crop, 2–3 s of frames"] --> L["Red / blue brightness<br/>over time"] --> FS["Flicker<br/>spectrogram"] --> N2["Same CNN design"] --> P2["Beacon score"]
+  P1 & P2 --> G{"Fusion gate"}
+  classDef k fill:#ffffff,stroke:#1b1f24,color:#1b1f24
+  classDef g fill:#fbeceb,stroke:#b4232c,color:#1b1f24
+  class A,AS,N1,P1,C,L,FS,N2,P2 k
+  class G g
+    </pre></div>
+    <div class="cols">
+      <div class="box why"><h4>Why it fits SirenFirst</h4><ul><li>A flashing beacon has a strong frequency signature that ordinary vehicles lack, so few labels are needed.</li><li>One design for both senses means less code and a clear story for the report.</li></ul></div>
+      <div class="box risk"><h4>Risk</h4><ul><li>Low frame-rate or heavily compressed CCTV can blur the flicker. We test at 10–25 FPS and report the results.</li></ul></div>
+    </div>
+  </article>
+
+  <!-- 5 -->
+  <article class="arch" id="a5">
+    <div class="arch-head"><span class="num">05</span><h3>TubeTemporal-Net — Track-Tube (2+1)D Network</h3></div>
+    <p class="oneliner">Stacks 16 frames of each tracked vehicle into a "tube" and learns shape, motion and flashing together.</p>
+    <div class="chips"><span class="chip">Temporal</span><span class="chip">More samples per vehicle</span></div>
+    <div class="diagram"><pre class="mermaid">
+flowchart LR
+  T["Tracked vehicle"] --> TB["16-frame tube"] --> SP["2D spatial conv"] --> TP["1D temporal conv"] --> VE["Visual embedding"]
+  A["3 s audio"] --> AT["1D temporal CNN"] --> AE["Audio embedding"]
+  VE & AE --> GRU["GRU fusion<br/>over last seconds"] --> O["Ambulance approaching?"]
+  classDef k fill:#ffffff,stroke:#1b1f24,color:#1b1f24
+  class T,TB,SP,TP,VE,A,AT,AE,GRU,O k
+    </pre></div>
+    <div class="cols">
+      <div class="box why"><h4>Why it fits SirenFirst</h4><ul><li>One passing vehicle gives dozens of overlapping tubes, so there are more training samples per label.</li><li>Flashing and steady approach are hard to fake from a single frame.</li></ul></div>
+      <div class="box risk"><h4>Risk</h4><ul><li>Heavier than single-frame models. Kept to ~1–2M parameters to hold ≥10 FPS.</li></ul></div>
+    </div>
+  </article>
+
+  <!-- 6 -->
+  <article class="arch" id="a6">
+    <div class="arch-head"><span class="num">06</span><h3>ProtoAmb / ProtoSiren — Prototype Few-Shot Networks</h3></div>
+    <p class="oneliner">Learns a space where similar things sit close together. Each class is a few "prototypes", and a new sample takes the class of the nearest prototype.</p>
+    <div class="chips"><span class="chip">Very few labels</span><span class="chip">Easy to extend</span></div>
+    <div class="diagram"><pre class="mermaid">
+flowchart LR
+  X["New crop or<br/>audio window"] --> EN["Small CNN encoder"] --> EM["Embedding"]
+  EM --> D{"Nearest prototype"}
+  P1(["Ambulance"]) --- D
+  P2(["Police / fire"]) --- D
+  P3(["Normal vehicle"]) --- D
+  D --> O["Class + distance"]
+  classDef k fill:#ffffff,stroke:#1b1f24,color:#1b1f24
+  classDef g fill:#fbeceb,stroke:#b4232c,color:#1b1f24
+  class X,EN,EM,O,P1,P2,P3 k
+  class D g
+    </pre></div>
+    <div class="cols">
+      <div class="box why"><h4>Why it fits SirenFirst</h4><ul><li>Built specifically for learning from a handful of examples per class.</li><li>Another state's ambulance livery can be added with 5–10 examples and no retraining, which supports "South India first, then expansion".</li></ul></div>
+      <div class="box risk"><h4>Risk</h4><ul><li>Lower top accuracy than a normal classifier when data is plentiful, which is not our situation.</li></ul></div>
+    </div>
+  </article>
+
+  <!-- 7 -->
+  <article class="arch" id="a7">
+    <div class="arch-head"><span class="num">07</span><h3>PartGraph-EV — Part-Whole Graph Reasoning</h3></div>
+    <p class="oneliner">First finds the parts (lamp bar, red cross, 108 text, windscreen, wheels), then a small graph network checks whether they are arranged like an ambulance.</p>
+    <div class="chips"><span class="chip">Explainable</span><span class="chip">Part-to-whole</span></div>
+    <div class="diagram"><pre class="mermaid">
+flowchart LR
+  C["Vehicle crop"] --> FCN["Small fully-conv net"] --> HM["Part heatmaps"]
+  HM --> N1(["Lamp bar"])
+  HM --> N2(["Red cross"])
+  HM --> N3(["108 text"])
+  HM --> N4(["Body"])
+  N1 & N2 & N3 & N4 --> GNN["2-layer graph network<br/>checks layout"] --> O["Ambulance / not<br/>+ reason"]
+  classDef k fill:#ffffff,stroke:#1b1f24,color:#1b1f24
+  class C,FCN,HM,N1,N2,N3,N4,GNN,O k
+    </pre></div>
+    <div class="cols">
+      <div class="box why"><h4>Why it fits SirenFirst</h4><ul><li>Parts are small patterns that appear many times, so they are easier to learn than whole vehicles.</li><li>The dataset already has part labels: ambulance_lamp, ambulance_108, ambulance_text.</li><li>Keeps the part-to-whole idea from the earlier capsule proposal without a pretrained YOLO.</li></ul></div>
+      <div class="box risk"><h4>Risk</h4><ul><li>Part labels are limited, and more coding is needed.</li></ul></div>
+    </div>
+  </article>
+
+  <!-- 8 -->
+  <article class="arch" id="a8">
+    <div class="arch-head"><span class="num">08</span><h3>BEV-ArmNet — Bird's-Eye Arm-Aware Network</h3></div>
+    <p class="oneliner">Warps the camera view to a top-down map first, then predicts the approach arm and ETA directly in metres.</p>
+    <div class="chips"><span class="chip">Lane-less</span><span class="chip">Direct ETA</span></div>
+    <div class="diagram"><pre class="mermaid">
+flowchart LR
+  F["Camera frame"] --> H["4-point homography"] --> B["Bird's-eye view"] --> CNN["Small BEV CNN"]
+  CNN --> A1["Approach arm<br/>N / E / S / W"]
+  CNN --> A2["Distance to<br/>stop line, m"]
+  CNN --> A3["ETA, s"]
+  F --> CR["Camera-view crop"] --> EC["Emergency cue heads"]
+  classDef k fill:#ffffff,stroke:#1b1f24,color:#1b1f24
+  class F,H,B,CNN,A1,A2,A3,CR,EC k
+    </pre></div>
+    <div class="cols">
+      <div class="box why"><h4>Why it fits SirenFirst</h4><ul><li>Perspective makes far vehicles tiny. In bird's-eye view that variation mostly disappears, so less data is needed.</li><li>Arm and ETA become learned outputs, matching the lane-less, arm-level objective.</li></ul></div>
+      <div class="box risk"><h4>Risk</h4><ul><li>Tall vehicles stretch in bird's-eye view. We use the ground-contact point, plus camera-view crops for appearance.</li></ul></div>
+    </div>
+  </article>
+
+  <!-- 9 -->
+  <article class="arch" id="a9">
+    <div class="arch-head"><span class="num">09</span><h3>ChirpDoppler-Net — Physics-Informed Siren Network</h3></div>
+    <p class="oneliner">Filters shaped like siren sweeps detect the siren, and a Doppler branch tells whether it is coming closer and roughly when it will arrive.</p>
+    <div class="chips"><span class="chip">Physics-based</span><span class="chip">More lead time</span><span class="chip">Fewer false alarms</span></div>
+    <div class="diagram"><pre class="mermaid">
+flowchart LR
+  A["Audio, 16 kHz"] --> CH["Learnable chirplet filters<br/>500–2,500 Hz sweeps"]
+  CH --> T["Small TCN"] --> S["Siren / no siren"]
+  CH --> D["Doppler branch<br/>pitch shift + loudness rise"]
+  D --> AP["Approaching / receding"]
+  D --> ET["Audio ETA estimate"]
+  classDef k fill:#ffffff,stroke:#1b1f24,color:#1b1f24
+  classDef g fill:#fbeceb,stroke:#b4232c,color:#1b1f24
+  class A,CH,T,S,D k
+  class AP,ET g
+    </pre></div>
+    <div class="cols">
+      <div class="box why"><h4>Why it fits SirenFirst</h4><ul><li>Physics fixes most of the model, so very few parameters are learnt.</li><li>Ignoring sirens that are moving away cuts false alarms per hour.</li><li>An early audio ETA increases lead time, the project's headline metric.</li></ul></div>
+      <div class="box risk"><h4>Risk</h4><ul><li>The Doppler shift is small at low speed and is affected by echoes, so it is used as a soft feature. One microphone cannot give direction, so the arm still comes from vision.</li></ul></div>
+    </div>
+  </article>
+
+  <!-- 10 -->
+  <article class="arch" id="a10">
+    <div class="arch-head"><span class="num">10</span><h3>JunctionMAE — Self-Supervised Junction Encoder</h3></div>
+    <p class="oneliner">Learns what a normal junction looks and sounds like from hours of unlabeled recordings, then needs only a few labels for the final task.</p>
+    <div class="chips"><span class="chip">Uses unlabeled data</span><span class="chip">Still from scratch</span></div>
+    <div class="diagram"><pre class="mermaid">
+flowchart LR
+  subgraph P["Stage 1: self-supervised, no labels"]
+    U["Unlabeled junction<br/>video + audio"] --> MK["Hide random patches"] --> EN["Encoder"] --> RC["Rebuild hidden patches"]
+  end
+  subgraph F["Stage 2: fine-tune, few labels"]
+    EN2["Same encoder"] --> H1["Ambulance head"]
+    EN2 --> H2["Siren head"]
+  end
+  EN -->|"copy weights"| EN2
+  classDef k fill:#ffffff,stroke:#1b1f24,color:#1b1f24
+  class U,MK,EN,RC,EN2,H1,H2 k
+    </pre></div>
+    <div class="cols">
+      <div class="box why"><h4>Why it fits SirenFirst</h4><ul><li>Unlabeled junction footage is easy and legal to record; labels are needed only for the small heads.</li><li>Still counts as training from scratch: our own weights, trained on our own data.</li></ul></div>
+      <div class="box risk"><h4>Risk</h4><ul><li>Pretraining takes the most GPU time, roughly 10–20 hours split across Kaggle sessions.</li></ul></div>
+    </div>
+  </article>
+</section>
+
+<section id="compare">
+  <h2>Comparison</h2>
+  <p class="sub">Expected behaviour based on how designs like these usually perform. Real numbers come only after training on SirenFirst data.</p>
+  <table>
+    <tr><th>#</th><th>Architecture</th><th>Labels needed</th><th>Explainable</th><th>Novelty</th><th>Speed</th><th>Build effort</th></tr>
+    <tr><td>1</td><td>MCX-Net</td><td class="hi">Low</td><td class="hi">High</td><td class="md">Medium-high</td><td class="hi">Fast</td><td class="md">Medium</td></tr>
+    <tr><td>2</td><td>AGVA-Net</td><td class="md">Medium</td><td class="md">Medium</td><td class="hi">High</td><td class="hi">Fast</td><td class="md">Medium</td></tr>
+    <tr><td>3</td><td>XM-Teach</td><td class="hi">Very low</td><td class="md">Medium</td><td class="hi">High</td><td class="hi">Fast</td><td class="md">Medium-high</td></tr>
+    <tr><td>4</td><td>FlickerSpec-Net</td><td class="hi">Low</td><td class="hi">High</td><td class="hi">High</td><td class="hi">Fast</td><td class="md">Medium</td></tr>
+    <tr><td>5</td><td>TubeTemporal-Net</td><td class="md">Medium</td><td class="lo">Low-medium</td><td class="md">Medium</td><td class="md">Medium</td><td class="md">Medium</td></tr>
+    <tr><td>6</td><td>ProtoAmb / ProtoSiren</td><td class="hi">Very low</td><td class="md">Medium</td><td class="md">Medium</td><td class="hi">Fast</td><td class="hi">Low-medium</td></tr>
+    <tr><td>7</td><td>PartGraph-EV</td><td class="md">Medium</td><td class="hi">High</td><td class="hi">High</td><td class="md">Medium</td><td class="lo">High</td></tr>
+    <tr><td>8</td><td>BEV-ArmNet</td><td class="md">Medium</td><td class="md">Medium</td><td class="hi">High</td><td class="hi">Fast</td><td class="md">Medium-high</td></tr>
+    <tr><td>9</td><td>ChirpDoppler-Net</td><td class="hi">Low</td><td class="hi">High</td><td class="hi">High</td><td class="hi">Fast</td><td class="md">Medium</td></tr>
+    <tr><td>10</td><td>JunctionMAE</td><td class="hi">Very low</td><td class="lo">Low</td><td class="md">Medium</td><td class="hi">Fast</td><td class="md">Medium-high</td></tr>
+  </table>
+  <p class="note">Every architecture is also compared against a required classical baseline: HOG + linear SVM, beacon FFT and livery ratios for vision; MFCC + GMM / SVM for audio.</p>
+</section>
+
+<section id="shortlist">
+  <h2>Recommended system</h2>
+  <p class="sub">The ideas combine well.</p>
+  <div class="diagram"><pre class="mermaid">
+flowchart LR
+  MIC["Microphone"] --> CD["ChirpDoppler-Net<br/>siren + approaching + audio ETA"]
+  CAM["Camera"] --> TR["Motion + tracker"] --> MCX["MCX-Net<br/>+ FlickerSpec beacon head"]
+  XM["XM-Teach<br/>pseudo-labels"] -.->|"trains"| MCX
+  CD -->|"tentative alert"| G{"Asymmetric fusion gate"}
+  MCX -->|"visual confirmation"| G
+  G --> BEV["Homography / BEV-ArmNet<br/>arm + ETA"] --> SM["Safe signal<br/>state machine"]
+  classDef k fill:#ffffff,stroke:#1b1f24,color:#1b1f24
+  classDef g fill:#fbeceb,stroke:#b4232c,color:#1b1f24
+  classDef s fill:#f1f3f5,stroke:#c9ced4,color:#1b1f24
+  class MIC,CAM,TR,CD,MCX,BEV,SM k
+  class G g
+  class XM s
+  </pre></div>
+  <div class="callout"><b>Novelty points for the report:</b> cross-modal self-teaching to beat the data shortage, one spectrogram view of light and sound, a physics-based siren ETA that adds lead time, and cue-level explanations for every signal decision.</div>
+</section>
+
+<section id="data">
+  <h2>Data plan (needed for any choice)</h2>
+  <p class="sub">What we have today, and what we add.</p>
+  <table>
+    <tr><th>Data</th><th>Have now</th><th>Add</th></tr>
+    <tr><td>Ambulance images</td><td>1,279 train / 339 valid / 185 test</td><td>Full Roboflow set (8,227), Kaggle and AV-JantaHack after licence check; deduplicate; split by source</td></tr>
+    <tr><td>Siren audio</td><td>200 clean + 200 noisy clips (likely the same 200 sirens)</td><td>AudioSet-EV, Asif et al., sireNNet</td></tr>
+    <tr><td>Non-siren audio</td><td class="lo">None</td><td>AudioSet-EV negatives (~20.9k), Asif et al. road clips, sireNNet traffic</td></tr>
+    <tr><td>Real junction video with ambulance</td><td class="lo">None</td><td>2–3 cited South Indian clips (channel, title, URL, access date)</td></tr>
+    <tr><td>Unlabeled junction video + audio</td><td class="lo">None</td><td>Record or collect hours of footage, for XM-Teach, JunctionMAE and false-alarm testing</td></tr>
+  </table>
+</section>
+
+<footer>SirenFirst · Architecture proposal for guide review · All expectations are planning judgements, not results.</footer>
+</main>
+</div>
+
+<script>
+(() => {
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const root = document.documentElement;
+
+  /* mobile drawer */
+  const btn = document.querySelector('.menu-btn');
+  const setNav = open => {
+    document.body.classList.toggle('nav-open', open);
+    btn.setAttribute('aria-expanded', open);
+    btn.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+  };
+  btn.addEventListener('click', () => setNav(!document.body.classList.contains('nav-open')));
+  document.querySelector('.backdrop').addEventListener('click', () => setNav(false));
+  document.querySelectorAll('nav a').forEach(a => a.addEventListener('click', () => setNav(false)));
+  addEventListener('keydown', e => { if (e.key === 'Escape') setNav(false); });
+  matchMedia('(min-width: 901px)').addEventListener('change', e => e.matches && setNav(false));
+
+  /* tables: label each cell from its header, for the stacked phone layout */
+  document.querySelectorAll('table').forEach(t => {
+    const heads = [...t.rows[0].cells].map(c => c.textContent.trim());
+    [...t.rows].slice(1).forEach(r => [...r.cells].forEach((c, i) => c.setAttribute('data-label', heads[i] || '')));
+    t.classList.add('stack');
+  });
+
+  /* scroll progress */
+  const bar = document.querySelector('.progress span');
+  let ticking = false;
+  const onScroll = () => {
+    if (ticking) return; ticking = true;
+    requestAnimationFrame(() => {
+      const max = root.scrollHeight - innerHeight;
+      bar.style.transform = `scaleX(${max > 0 ? scrollY / max : 0})`;
+      ticking = false;
+    });
+  };
+  addEventListener('scroll', onScroll, { passive: true }); onScroll();
+
+  /* active section in the sidebar */
+  const links = new Map([...document.querySelectorAll('nav a[href^="#"]')].map(a => [a.getAttribute('href').slice(1), a]));
+  const targets = [...links.keys()].map(id => document.getElementById(id)).filter(Boolean);
+  const spy = new IntersectionObserver(entries => {
+    entries.forEach(en => {
+      if (!en.isIntersecting) return;
+      links.forEach(a => a.classList.remove('active'));
+      links.get(en.target.id)?.classList.add('active');
+    });
+  }, { rootMargin: '-35% 0px -60% 0px' });
+  targets.forEach(t => spy.observe(t));
+
+  /* reveal on scroll: once, then hand the element back to its hover styles */
+  const mark = (sel, cls) => document.querySelectorAll(sel).forEach(el => el.classList.add(cls));
+  mark('main section > h2, main section > p.sub, #system > .diagram, #system > .note, #compare table, #data table, .note, .callout, #shortlist > .diagram, .arch, footer', 'reveal');
+  mark('.rules, .cols', 'stagger');
+  if (reduce || !('IntersectionObserver' in window)) {
+    document.querySelectorAll('.reveal, .stagger').forEach(el => el.classList.remove('reveal', 'stagger'));
+  } else {
+    const io = new IntersectionObserver(entries => entries.forEach(en => {
+      if (!en.isIntersecting) return;
+      const el = en.target; io.unobserve(el);
+      el.classList.add('in');
+      setTimeout(() => el.classList.remove('reveal', 'stagger', 'in'), 1100);
+    }), { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
+    document.querySelectorAll('.reveal, .stagger').forEach(el => io.observe(el));
+  }
+})();
+</script>
+
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: "base",
+    flowchart: { curve: "basis", padding: 14, htmlLabels: true },
+    themeVariables: {
+      fontFamily: '"Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif',
+      fontSize: "14px",
+      primaryColor: "#ffffff", primaryBorderColor: "#1b1f24", primaryTextColor: "#1b1f24",
+      lineColor: "#6b7380", secondaryColor: "#f1f3f5", tertiaryColor: "#f7f8f9",
+      clusterBkg: "#f7f8f9", clusterBorder: "#c9ced4"
+    }
+  });
+
+  const diagrams = [...document.querySelectorAll('.diagram')];
+  const hintHTML = 'Swipe to see the full diagram <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2 7h9M7.5 3.5 11 7l-3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  diagrams.forEach(d => {
+    const p = document.createElement('p'); p.className = 'scroll-hint'; p.innerHTML = hintHTML;
+    d.after(p);
+    if (!reduce) d.classList.add('pre-draw');
+  });
+
+  try {
+    await document.fonts.ready;           // measure labels in Poppins, not the fallback
+    await mermaid.run({ querySelector: '.mermaid' });
+  } catch (e) {
+    console.error(e);
+  }
+
+  /* small screens: keep labels readable, let a wide diagram scroll sideways */
+  const fit = () => diagrams.forEach(d => {
+    const svg = d.querySelector('svg'); if (!svg) return;
+    const vb = svg.viewBox && svg.viewBox.baseVal;
+    const natural = vb && vb.width ? vb.width : svg.getBoundingClientRect().width;
+    const cs = getComputedStyle(d);
+    const avail = d.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    const readable = Math.round(Math.min(natural, Math.max(560, natural * 0.7)));   /* labels stay about 10px or larger */
+    if (innerWidth <= 640 && avail < readable * 0.95) {
+      svg.style.width = readable + 'px'; svg.style.maxWidth = 'none'; d.classList.add('scrolls');
+    } else {
+      svg.style.width = ''; svg.style.maxWidth = natural + 'px'; d.classList.remove('scrolls');
+    }
+  });
+  fit();
+  let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(fit, 150); });
+
+  /* draw each diagram once as it comes into view: nodes settle, then lines run */
+  const draw = d => {
+    const svg = d.querySelector('svg');
+    if (!svg) { d.classList.remove('pre-draw'); return; }
+    const paths = [...svg.querySelectorAll('.edgePaths path, path.flowchart-link, path.transition')];
+    const parts = [...svg.querySelectorAll('.node, .cluster, .edgeLabel, g.stateGroup')];
+    paths.forEach(p => {
+      const L = p.getTotalLength ? p.getTotalLength() : 0;
+      p.style.strokeDasharray = L; p.style.strokeDashoffset = L;
+    });
+    parts.forEach((n, i) => { n.style.transitionDelay = (i * 0.045) + 's'; });
+    svg.getBoundingClientRect();         // commit the start state
+    requestAnimationFrame(() => {
+      d.classList.remove('pre-draw');
+      paths.forEach((p, i) => {
+        p.style.transition = `stroke-dashoffset .9s cubic-bezier(.2,.7,.2,1) ${0.2 + i * 0.05}s`;
+        p.style.strokeDashoffset = 0;
+      });
+      const total = 1300 + Math.max(paths.length * 50, parts.length * 45);
+      setTimeout(() => {                  // give back dashed edge styles and plain hover timing
+        paths.forEach(p => { p.style.strokeDasharray = ''; p.style.strokeDashoffset = ''; p.style.transition = ''; });
+        parts.forEach(n => { n.style.transitionDelay = ''; });
+      }, total);
+    });
+  };
+
+  if (reduce || !('IntersectionObserver' in window)) {
+    diagrams.forEach(d => d.classList.remove('pre-draw'));
+  } else {
+    const io = new IntersectionObserver(entries => entries.forEach(en => {
+      if (!en.isIntersecting) return;
+      io.unobserve(en.target); draw(en.target);
+    }), { threshold: 0.25 });
+    diagrams.forEach(d => io.observe(d));
+  }
+</script>
+</body>
+</html>
